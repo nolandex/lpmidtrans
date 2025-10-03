@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, ReactNode } from "react";
+import React, { useState, useEffect, ReactNode } from "react";
+import Script from "next/script"; // Import ini untuk dynamic script loading
 import { product } from "../libs/product"; // Data produk tetap
 
 // --- Pattern Background ---
@@ -334,6 +335,27 @@ const Checkout: React.FC = () => {
   ];
 
   const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+  const [snapLoaded, setSnapLoaded] = useState(false);
+
+  // Load Snap script dynamically (ganti YOUR_CLIENT_KEY dengan client key sandbox Midtrans Anda)
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = "https://app.sandbox.midtrans.com/snap/snap.js"; // Gunakan 'https://app.midtrans.com/snap/snap.js' untuk production
+    script.setAttribute("data-client-key", "SB-Mid-server-YOUR_CLIENT_KEY_HERE"); // Ganti dengan client key sandbox Anda
+    script.async = true;
+    script.onload = () => {
+      console.log("Snap script loaded successfully");
+      setSnapLoaded(true);
+    };
+    script.onerror = () => {
+      console.error("Failed to load Snap script");
+    };
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, []);
 
   const scrollToPricing = () => {
     const pricingSection = document.getElementById("pricing-section");
@@ -341,35 +363,50 @@ const Checkout: React.FC = () => {
   };
 
   const checkout = async (plan: { id: string; title: string; price: string }) => {
+    if (!snapLoaded) {
+      alert("Snap script belum dimuat. Silakan tunggu sebentar dan coba lagi.");
+      console.error("Snap not loaded yet");
+      return;
+    }
+
     setIsLoading((prev) => ({ ...prev, [plan.id]: true }));
+    const numericPrice = plan.price.replace("Rp ", "").replace(".", "").replace(".", ""); // Bersihkan format Rp 99.000 -> 99000
     const data = {
       id: plan.id,
       productName: plan.title,
-      price: plan.price.replace("Rp ", "").replace(".", ""),
+      price: numericPrice,
       quantity: 1,
     };
+    console.log("Sending data to API:", data); // Debug log
+
     try {
       const res = await fetch("/api/tokenizer", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      console.log("API Response Status:", res.status); // Debug log
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       const resData = await res.json();
-      if (!resData?.token) throw new Error("Invalid token response");
+      console.log("API Response Data:", resData); // Debug log
+      if (!resData?.token) throw new Error("Invalid token response: No token found");
 
-      // Membuka Snap payment
+      // Panggil Snap pay
+      console.log("Calling snap.pay with token:", resData.token.substring(0, 20) + "..."); // Log partial token
       (window as any).snap.pay(resData.token, {
-        onSuccess: function () {
-          console.log("Payment success");
+        onSuccess: function (result: any) {
+          console.log("Payment success:", result);
+          alert("Pembayaran berhasil! Terima kasih.");
           setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
         },
-        onPending: function () {
-          console.log("Payment pending");
+        onPending: function (result: any) {
+          console.log("Payment pending:", result);
+          alert("Pembayaran sedang diproses. Silakan tunggu konfirmasi.");
           setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
         },
-        onError: function (error: any) {
-          console.error("Payment error:", error);
+        onError: function (result: any) {
+          console.error("Payment error:", result);
+          alert("Pembayaran gagal: " + (result?.status_message || "Unknown error"));
           setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
         },
         onClose: function () {
@@ -379,6 +416,7 @@ const Checkout: React.FC = () => {
       });
     } catch (err: any) {
       console.error("Checkout error:", err.message);
+      alert("Error: " + err.message + ". Silakan coba lagi atau hubungi support.");
       setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
     }
   };
