@@ -130,10 +130,7 @@ const Navbar: React.FC = () => {
   return (
     <nav className="sticky top-0 z-50 w-full bg-white shadow-md">
       <div className="container mx-auto px-4 md:px-6 flex items-center justify-between h-16">
-        {/* Logo */}
         <div className="text-2xl font-bold text-blue-600">KODEBISNIS</div>
-
-        {/* Button */}
         <Button
           className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition"
           onClick={scrollToPricing}
@@ -400,41 +397,43 @@ const Checkout: React.FC = () => {
       {/* Testimonials (Section 4 normal) */}
       <TestimonialSection />
 
-      {/* Pricing (Section 5 with Pattern) */}
+      {/* Pricing (Section 5 with Pattern, 2 cards) */}
       <PatternBackground className="w-full py-20 md:py-32 bg-gray-50" id="pricing-section">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="max-w-md mx-auto">
-            <Card className="bg-white shadow-2xl rounded-3xl p-6">
-              <CardHeader className="text-center">
-                <h2 className="text-2xl font-bold text-gray-900">{config.pricing.title}</h2>
-                <p className="text-4xl font-extrabold text-blue-600 mt-2">{config.pricing.price}</p>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3 text-gray-700">
-                  {config.pricing.features.map((feature, i) => (
-                    <li key={i} className="flex items-center">
-                      <svg
-                        className="w-5 h-5 mr-2 text-blue-600 flex-shrink-0"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-              <CardFooter>
-                <Button
-                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg"
-                  onClick={checkout}
-                >
-                  {config.pricing.buttonText}
-                </Button>
-              </CardFooter>
-            </Card>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {[1, 2].map((_, idx) => (
+              <Card key={idx} className="bg-white shadow-2xl rounded-3xl p-6">
+                <CardHeader className="text-center">
+                  <h2 className="text-2xl font-bold text-gray-900">{config.pricing.title}</h2>
+                  <p className="text-4xl font-extrabold text-blue-600 mt-2">{config.pricing.price}</p>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3 text-gray-700">
+                    {config.pricing.features.map((feature, i) => (
+                      <li key={i} className="flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-blue-600 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg"
+                    onClick={checkout}
+                  >
+                    {config.pricing.buttonText}
+                  </Button>
+                </CardFooter>
+              </Card>
+            ))}
           </div>
         </div>
       </PatternBackground>
