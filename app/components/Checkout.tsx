@@ -259,19 +259,50 @@ const Checkout: React.FC = () => {
       buttonText: "Get Started Now",
       youtubeEmbed: "https://www.youtube.com/embed/dQw4w9WgXcQ",
     },
-    pricing: {
-      title: product.name,
-      price: `Rp ${product.price}`,
-      features: [
-        "Smart Automation",
-        "Advanced Analytics",
-        "Team Collaboration",
-        "Enterprise Security",
-        "Seamless Integration",
-        "24/7 Support",
-      ],
-      buttonText: "Checkout Sekarang",
-    },
+    pricing: [
+      {
+        title: "Basic",
+        price: "Rp 99.000",
+        features: [
+          "Smart Automation",
+          "Basic Analytics",
+          "Team Collaboration",
+          "Standard Security",
+          "Basic Integration",
+          "Email Support",
+        ],
+        buttonText: "Checkout Sekarang",
+        id: "basic_plan",
+      },
+      {
+        title: "Pro",
+        price: "Rp 199.000",
+        features: [
+          "Smart Automation",
+          "Advanced Analytics",
+          "Team Collaboration",
+          "Enterprise Security",
+          "Seamless Integration",
+          "24/7 Support",
+        ],
+        buttonText: "Checkout Sekarang",
+        id: "pro_plan",
+      },
+      {
+        title: "Enterprise",
+        price: "Rp 399.000",
+        features: [
+          "Smart Automation",
+          "Advanced Analytics",
+          "Team Collaboration",
+          "Enterprise Security",
+          "Seamless Integration",
+          "Dedicated Support",
+        ],
+        buttonText: "Checkout Sekarang",
+        id: "enterprise_plan",
+      },
+    ],
     howItWorks: {
       title: "How It Works",
       steps: [
@@ -305,8 +336,8 @@ const Checkout: React.FC = () => {
     if (pricingSection) pricingSection.scrollIntoView({ behavior: "smooth" });
   };
 
-  const checkout = async () => {
-    const data = { id: product.id, productName: product.name, price: product.price, quantity: 1 };
+  const checkout = async (plan: { id: string; title: string; price: string }) => {
+    const data = { id: plan.id, productName: plan.title, price: plan.price.replace("Rp ", "").replace(".", ""), quantity: 1 };
     try {
       const res = await fetch("/api/tokenizer", {
         method: "POST",
@@ -397,19 +428,19 @@ const Checkout: React.FC = () => {
       {/* Testimonials (Section 4 normal) */}
       <TestimonialSection />
 
-      {/* Pricing (Section 5 with Pattern, 2 cards) */}
+      {/* Pricing (Section 5 with Pattern, 3 cards) */}
       <PatternBackground className="w-full py-20 md:py-32 bg-gray-50" id="pricing-section">
         <div className="container mx-auto px-4 md:px-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            {[1, 2].map((_, idx) => (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {config.pricing.map((plan, idx) => (
               <Card key={idx} className="bg-white shadow-2xl rounded-3xl p-6">
                 <CardHeader className="text-center">
-                  <h2 className="text-2xl font-bold text-gray-900">{config.pricing.title}</h2>
-                  <p className="text-4xl font-extrabold text-blue-600 mt-2">{config.pricing.price}</p>
+                  <h2 className="text-2xl font-bold text-gray-900">{plan.title}</h2>
+                  <p className="text-4xl font-extrabold text-blue-600 mt-2">{plan.price}</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 text-gray-700">
-                    {config.pricing.features.map((feature, i) => (
+                    {plan.features.map((feature, i) => (
                       <li key={i} className="flex items-center">
                         <svg
                           className="w-5 h-5 mr-2 text-blue-600 flex-shrink-0"
@@ -427,9 +458,9 @@ const Checkout: React.FC = () => {
                 <CardFooter>
                   <Button
                     className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg"
-                    onClick={checkout}
+                    onClick={() => checkout(plan)}
                   >
-                    {config.pricing.buttonText}
+                    {plan.buttonText}
                   </Button>
                 </CardFooter>
               </Card>
