@@ -73,12 +73,14 @@ interface ButtonProps {
   className?: string;
   onClick?: () => void;
   size?: string;
+  disabled?: boolean;
 }
 
-const Button = ({ children, className = "", onClick }: ButtonProps) => (
+const Button = ({ children, className = "", onClick, disabled = false }: ButtonProps) => (
   <button
     className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 ${className}`}
     onClick={onClick}
+    disabled={disabled}
   >
     {children}
   </button>
@@ -331,13 +333,21 @@ const Checkout: React.FC = () => {
     },
   ];
 
+  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+
   const scrollToPricing = () => {
     const pricingSection = document.getElementById("pricing-section");
     if (pricingSection) pricingSection.scrollIntoView({ behavior: "smooth" });
   };
 
   const checkout = async (plan: { id: string; title: string; price: string }) => {
-    const data = { id: plan.id, productName: plan.title, price: plan.price.replace("Rp ", "").replace(".", ""), quantity: 1 };
+    setIsLoading((prev) => ({ ...prev, [plan.id]: true }));
+    const data = {
+      id: plan.id,
+      productName: plan.title,
+      price: plan.price.replace("Rp ", "").replace(".", ""),
+      quantity: 1,
+    };
     try {
       const res = await fetch("/api/tokenizer", {
         method: "POST",
@@ -347,9 +357,29 @@ const Checkout: React.FC = () => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const resData = await res.json();
       if (!resData?.token) throw new Error("Invalid token response");
-      (window as any).snap.pay(resData.token);
+
+      // Membuka Snap payment
+      (window as any).snap.pay(resData.token, {
+        onSuccess: function () {
+          console.log("Payment success");
+          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
+        },
+        onPending: function () {
+          console.log("Payment pending");
+          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
+        },
+        onError: function (error: any) {
+          console.error("Payment error:", error);
+          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
+        },
+        onClose: function () {
+          console.log("Payment popup closed");
+          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
+        },
+      });
     } catch (err: any) {
       console.error("Checkout error:", err.message);
+      setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
     }
   };
 
@@ -459,8 +489,9 @@ const Checkout: React.FC = () => {
                   <Button
                     className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg"
                     onClick={() => checkout(plan)}
+                    disabled={isLoading[plan.id]}
                   >
-                    {plan.buttonText}
+                    {isLoading[plan.id] ? "Memproses..." : plan.buttonText}
                   </Button>
                 </CardFooter>
               </Card>
