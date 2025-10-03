@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, ReactNode } from "react";
-import Script from "next/script"; // Import ini untuk dynamic script loading
+import React, { useState, ReactNode } from "react";
 import { product } from "../libs/product"; // Data produk tetap
 
 // --- Pattern Background ---
@@ -74,14 +73,12 @@ interface ButtonProps {
   className?: string;
   onClick?: () => void;
   size?: string;
-  disabled?: boolean;
 }
 
-const Button = ({ children, className = "", onClick, disabled = false }: ButtonProps) => (
+const Button = ({ children, className = "", onClick }: ButtonProps) => (
   <button
     className={`inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:pointer-events-none disabled:opacity-50 ${className}`}
     onClick={onClick}
-    disabled={disabled}
   >
     {children}
   </button>
@@ -334,90 +331,25 @@ const Checkout: React.FC = () => {
     },
   ];
 
-  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
-  const [snapLoaded, setSnapLoaded] = useState(false);
-
-  // Load Snap script dynamically (ganti YOUR_CLIENT_KEY dengan client key sandbox Midtrans Anda)
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://app.sandbox.midtrans.com/snap/snap.js"; // Gunakan 'https://app.midtrans.com/snap/snap.js' untuk production
-    script.setAttribute("data-client-key", "SB-Mid-server-YOUR_CLIENT_KEY_HERE"); // Ganti dengan client key sandbox Anda
-    script.async = true;
-    script.onload = () => {
-      console.log("Snap script loaded successfully");
-      setSnapLoaded(true);
-    };
-    script.onerror = () => {
-      console.error("Failed to load Snap script");
-    };
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
-
   const scrollToPricing = () => {
     const pricingSection = document.getElementById("pricing-section");
     if (pricingSection) pricingSection.scrollIntoView({ behavior: "smooth" });
   };
 
   const checkout = async (plan: { id: string; title: string; price: string }) => {
-    if (!snapLoaded) {
-      alert("Snap script belum dimuat. Silakan tunggu sebentar dan coba lagi.");
-      console.error("Snap not loaded yet");
-      return;
-    }
-
-    setIsLoading((prev) => ({ ...prev, [plan.id]: true }));
-    const numericPrice = plan.price.replace("Rp ", "").replace(".", "").replace(".", ""); // Bersihkan format Rp 99.000 -> 99000
-    const data = {
-      id: plan.id,
-      productName: plan.title,
-      price: numericPrice,
-      quantity: 1,
-    };
-    console.log("Sending data to API:", data); // Debug log
-
+    const data = { id: plan.id, productName: plan.title, price: plan.price.replace("Rp ", "").replace(".", ""), quantity: 1 };
     try {
       const res = await fetch("/api/tokenizer", {
         method: "POST",
         body: JSON.stringify(data),
         headers: { "Content-Type": "application/json" },
       });
-      console.log("API Response Status:", res.status); // Debug log
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const resData = await res.json();
-      console.log("API Response Data:", resData); // Debug log
-      if (!resData?.token) throw new Error("Invalid token response: No token found");
-
-      // Panggil Snap pay
-      console.log("Calling snap.pay with token:", resData.token.substring(0, 20) + "..."); // Log partial token
-      (window as any).snap.pay(resData.token, {
-        onSuccess: function (result: any) {
-          console.log("Payment success:", result);
-          alert("Pembayaran berhasil! Terima kasih.");
-          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
-        },
-        onPending: function (result: any) {
-          console.log("Payment pending:", result);
-          alert("Pembayaran sedang diproses. Silakan tunggu konfirmasi.");
-          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
-        },
-        onError: function (result: any) {
-          console.error("Payment error:", result);
-          alert("Pembayaran gagal: " + (result?.status_message || "Unknown error"));
-          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
-        },
-        onClose: function () {
-          console.log("Payment popup closed");
-          setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
-        },
-      });
+      if (!resData?.token) throw new Error("Invalid token response");
+      (window as any).snap.pay(resData.token);
     } catch (err: any) {
       console.error("Checkout error:", err.message);
-      alert("Error: " + err.message + ". Silakan coba lagi atau hubungi support.");
-      setIsLoading((prev) => ({ ...prev, [plan.id]: false }));
     }
   };
 
@@ -527,9 +459,8 @@ const Checkout: React.FC = () => {
                   <Button
                     className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition shadow-lg"
                     onClick={() => checkout(plan)}
-                    disabled={isLoading[plan.id]}
                   >
-                    {isLoading[plan.id] ? "Memproses..." : plan.buttonText}
+                    {plan.buttonText}
                   </Button>
                 </CardFooter>
               </Card>
